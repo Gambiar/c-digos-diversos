@@ -1,0 +1,20 @@
+SELECT 
+  a.Chave_Unica,	
+  a.Cod_Turma,
+  b.email,
+  b.ConferenceId,
+  b.MeetingCode,
+  CONVERT(DATE, b.time) AS MeetingDate, -- Converte 'b.time' para data sem horário
+  -- Soma dos campos de duração e vídeo
+  SUM(DISTINCT b.DurationSeconds) AS total_duration_seconds,
+  SUM(DISTINCT b.VideoSeconds) AS total_video_seconds,
+  -- Contagem de emails distintos
+  COUNT(DISTINCT b.email) AS total_unique_participants
+FROM Form_Mun_Meet a
+LEFT JOIN Formadores.dbo.MeetParticipant b
+  ON a.MeetingCode = b.MeetingCode
+WHERE b.Time BETWEEN '2024-08-04' AND '2024-09-30'
+and b.Email = 'grassi.kelen@escola.pr.gov.br'
+--AND b.ConferenceId = 'ZDyWBpWqvMwpiC5Vg-JMDxIVOAIIigIgABgFCA'
+GROUP BY a.Cod_Turma, b.email, b.MeetingCode, b.ConferenceId, a.Chave_Unica, CONVERT(DATE, b.time) -- Agrupa pela data
+ORDER BY b.email, MeetingDate;
