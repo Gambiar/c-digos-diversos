@@ -1,0 +1,59 @@
+import re
+import pandas as pd
+
+# Função para extrair os últimos caracteres e remover os traços do link
+def extrair_codigo(link):
+    # Ignorar tudo após o "?"
+    link_sem_parametros = link.split('?')[0]
+    
+    # Usando expressão regular para pegar tudo após a última barra
+    match = re.search(r'/([^/]+)$', link_sem_parametros)
+    if match:
+        codigo = match.group(1)
+        # Remover os traços e deixar tudo em maiúsculas
+        codigo_limpo = codigo.replace('-', '').upper()
+        return codigo_limpo
+    return None
+
+# Autenticação do Colab com o Google e carregamento da planilha
+from google.colab import auth
+import gspread
+from google.auth import default
+
+auth.authenticate_user()
+creds, _ = default()
+gc = gspread.authorize(creds)
+
+# ID da planilha e nome da aba (verifique o correto)
+planilha_id = '1nik9zxxhWFEMzU8ZEgwghjeDyN2L_dWGVo9XO7JCB_g'
+nome_aba = 'Página2'
+
+# Abrindo a planilha e selecionando a aba
+planilha = gc.open_by_key(planilha_id)
+aba = planilha.worksheet(nome_aba)
+
+# Carregando os dados no formato de DataFrame
+dados = aba.get_all_records()
+df = pd.DataFrame(dados)
+
+# Extraindo as colunas 'Cod_Jornada', 'Desc_Jornada', 'Cod_Turma' e 'Link'
+df_selecionado = df[['Cod_Jornada', 'Desc_Jornada', 'Cod_Turma', 'Link']].copy()
+
+# Aplicando a função de extração de código na coluna 'Link'
+df_selecionado['codigo_extraido'] = df_selecionado['Link'].apply(extrair_codigo)
+
+# Concatenando 'Cod_Jornada' e 'Cod_Turma' para criar o campo 'Chave_Unica'
+df_selecionado['Chave_Unica'] = df_selecionado['Cod_Jornada'].astype(str) + '_' + df_selecionado['Cod_Turma'].astype(str)
+
+# Reorganizando as colunas na ordem especificada
+df_ordenado = df_selecionado[['Cod_Jornada', 'Desc_Jornada', 'Cod_Turma', 'Link', 'codigo_extraido', 'Chave_Unica']]
+
+# Exibindo os primeiros resultados
+print(df_ordenado.head())
+
+# Salvando o DataFrame processado em um CSV
+df_ordenado.to_csv('turmas_e_codigos_com_chave.csv', index=False)
+
+# Baixando o CSV gerado
+from google.colab import files
+files.download('turmas_e_codigos_com_chave.csv')
